@@ -1,0 +1,3 @@
+torch
+numpy
+git+https://github.com/jacazek/fasta_utils.git@main#egg=fasta_utils
