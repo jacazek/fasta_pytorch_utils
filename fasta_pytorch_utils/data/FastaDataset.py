@@ -1,8 +1,34 @@
 import os
 import torch
-import numpy
 from fasta_utils import FastaFileReader
 
+def create_dna_sequence_collate_function(vocabulary):
+    def collate_fn(batch):
+        """
+        Collect then pad the sequences into a tensor
+        :param batch: the batch
+        :return: padded sequences, the original targets, and corresponding original lengths of each sequence
+        """
+        # sort the batch by length of sequence ascending
+        batch = sorted(batch, key=lambda item: len(item[0]), reverse=True)
+        # unzip the sequences from the corresponding targets
+        [sequences, targets] = zip(*batch)
+
+        # make the targets a 2-dimensional batch of size 1, so we can easily support multiple targets later
+        # by easily refactoring the dataset and dataloader
+        targets = torch.stack([torch.tensor([target]) for target in targets], dim=0)
+
+        # gather the original lengths of the sequence before padding
+        lengths = torch.tensor([len(sequence) for sequence in sequences], dtype=torch.long)
+
+        """
+        The sequences should have already been loaded for cpu manipulation, so we should pad them before
+        moving them to the gpu because it is more efficient to pad on the cpu
+        """
+        sequences = torch.nn.utils.rnn.pad_sequence(sequences, batch_first=True, padding_value=vocabulary["pad"])
+        return sequences, targets, lengths
+
+    return collate_fn
 class FastaDataset(torch.utils.data.IterableDataset):
     def __init__(self, fasta_file, tokenizer, vocabulary, device="cpu", dtype=torch.float32, index_file=None):
         super(FastaDataset).__init__()

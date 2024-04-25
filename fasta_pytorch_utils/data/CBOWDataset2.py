@@ -1,7 +1,5 @@
 import math
 import torch
-import numpy
-from fasta_utils import FastaFileReader
 
 
 class CBOWDataset2(torch.utils.data.IterableDataset):

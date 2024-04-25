@@ -1,6 +1,5 @@
 import math
 import torch
-import numpy
 from fasta_utils import FastaFileReader
 
 
