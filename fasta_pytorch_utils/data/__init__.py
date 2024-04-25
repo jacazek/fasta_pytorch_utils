@@ -1,0 +1,3 @@
+from fasta_pytorch_utils.data.FastaDataset import FastaDataset
+from fasta_pytorch_utils.data.CBOWDataset import CBOWDataset
+from fasta_pytorch_utils.data.CBOWDataset2 import CBOWDataset2
