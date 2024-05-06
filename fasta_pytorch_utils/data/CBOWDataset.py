@@ -5,8 +5,8 @@ from fasta_utils import FastaFileReader
 
 
 class CBOWDataset(torch.utils.data.IterableDataset):
-    def __init__(self, rank, fasta_file, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7,
-                 index_file=None):
+    def __init__(self, fasta_file, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7,
+                 index_file=None, rank=0):
         super(CBOWDataset).__init__()
         self.rank = rank
         self.tokenizer = tokenizer
