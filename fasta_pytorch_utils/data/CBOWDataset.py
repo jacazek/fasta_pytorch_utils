@@ -1,12 +1,14 @@
 import math
 import torch
+import torch.utils.data
 from fasta_utils import FastaFileReader
 
 
 class CBOWDataset(torch.utils.data.IterableDataset):
-    def __init__(self, fasta_file, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7,
+    def __init__(self, rank, fasta_file, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7,
                  index_file=None):
         super(CBOWDataset).__init__()
+        self.rank = rank
         self.tokenizer = tokenizer
         self.vocabulary = vocabulary
         self.fasta_file = fasta_file
@@ -18,6 +20,7 @@ class CBOWDataset(torch.utils.data.IterableDataset):
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
+
         with FastaFileReader(self.fasta_file, index_file=self.index_file) as fasta_file_reader:
             data_reader = None
             if worker_info is None:
@@ -26,7 +29,7 @@ class CBOWDataset(torch.utils.data.IterableDataset):
                 if self.index_file is None:
                     raise Exception("index file must be specified when using multiple workers")
                 number_of_sequences = fasta_file_reader.get_index_table_length()
-                index = worker_info.id % number_of_sequences
+                index = self.rank * worker_info.num_workers + worker_info.id % number_of_sequences
                 data_reader = fasta_file_reader.read_at_index(index)
 
             for header, sequence in data_reader:
