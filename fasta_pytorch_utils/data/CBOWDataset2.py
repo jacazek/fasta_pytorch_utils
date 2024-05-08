@@ -1,23 +1,25 @@
 import math
 import torch
+import torch.utils.data
+from fasta_utils import FastaFileReader
 
 
 class CBOWDataset2(torch.utils.data.IterableDataset):
-    def __init__(self, sequence_provider, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7,
-                 index_file=None):
+    def __init__(self, sequence_queue, tokenizer, vocabulary, device="cpu", dtype=torch.float32, window_size=7, rank=0):
         super(CBOWDataset2).__init__()
+        self.rank = rank
         self.tokenizer = tokenizer
         self.vocabulary = vocabulary
-        self.sequence_provider = sequence_provider
+        self.sequence_queue = sequence_queue
         self.device = device
         self.dtype = dtype
         self.window_size = window_size
         self.window_middle = math.floor(window_size / 2)
 
     def __iter__(self):
-        worker_info = torch.utils.data.get_worker_info()
-        for header, sequence in self.sequence_provider:
-            print(f"worker {worker_info.id}: reading chromosome {header}")
+        # worker_info = torch.utils.data.get_worker_info()
+        sequence = self.sequence_queue.get(True)
+        while sequence is not None:
             iterator = iter(self.tokenizer.tokenize(sequence))
             window = [self.vocabulary[next(iterator)] for _ in range(self.window_size)]
             try:
@@ -37,3 +39,4 @@ class CBOWDataset2(torch.utils.data.IterableDataset):
                                         dtype=torch.long), torch.tensor(window[self.window_middle],
                                                                         dtype=torch.long))  # Return the remaining window
                     window.pop(0)
+            sequence = self.sequence_queue.get(True)
