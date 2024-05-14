@@ -42,7 +42,7 @@ class FastaKmerDataset(torch.utils.data.IterableDataset):
         worker_info = torch.utils.data.get_worker_info()
         # tuples = [(file, index) for index in [10, 11] for file in self.files]
         # print(f"rank: {self.rank}; worker: {worker_info.id}, tuples: {tuples}")
-        for tuple in Consumer(self.sequence_queue):
+        for tuple in QueueConsumer(self.sequence_queue):
             # print(f"rank: {self.rank}; worker: {worker_info.id}; processing tuple {tuple}")
             file, index = tuple
             with FastaFileReader(file) as fasta_file_reader:
