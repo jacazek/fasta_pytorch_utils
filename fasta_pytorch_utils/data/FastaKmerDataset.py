@@ -4,7 +4,6 @@ from typing import Iterable
 import torch.utils.data
 from fasta_utils import FastaFileReader
 from abc import ABC, abstractmethod
-import numpy as np
 
 from queue import Queue
 
@@ -64,17 +63,32 @@ class PreprocessEmbedding(EmbeddingStrategy):
         self.window_middle = math.floor(window_size / 2)
 
     def get_windows(self, sequence):
-        embedded = [self.vocabulary[token] for token in self.tokenizer.tokenize(sequence)]
+        items = [self.vocabulary[token] for token in self.tokenizer.tokenize(sequence)]
         start = 0
-        end = len(embedded) - 8
+        end = len(items) - 8
         window_half = self.window_middle
-        while start < end:
-            sequence_middle = start + window_half
-            yield (
-                torch.tensor(embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
-                             dtype=torch.long),
-                torch.tensor(embedded[window_half], dtype=torch.long))
-            start += 1
+        window_size = self.window_size
+
+        items = [(torch.tensor(items[i:i + window_half] + items[i + window_half + 1:i + window_size],
+                                  dtype=torch.long), torch.tensor(items[i + window_half], dtype=torch.long)) for i in
+                    range(len(items) - (window_size + 1))]
+        yield from self.get_context_target(items)
+
+    def get_context_target(self, windowed):
+        # start = 0
+        # end = len(embedded) - 8
+        # window_half = self.window_middle
+        # while start < end:
+        #     sequence_middle = start + window_half
+        #     yield (
+        #         torch.tensor(embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
+        #                      dtype=torch.long),
+        #         torch.tensor(embedded[window_half], dtype=torch.long))
+        #     # yield (embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
+        #     #        embedded[window_half])
+        #     start += 1
+        for sample in windowed:
+            yield sample
 
 
 class StreamingEmbedding(EmbeddingStrategy):
@@ -87,6 +101,9 @@ class StreamingEmbedding(EmbeddingStrategy):
     def get_windows(self, sequence):
         iterator = iter(self.tokenizer.tokenize(sequence))
         window = [self.vocabulary[next(iterator)] for _ in range(self.window_size)]
+        yield from self.get_context_target(iterator, window)
+
+    def get_context_target(self, iterator, window):
         try:
             while True:
                 yield (torch.tensor(window[:self.window_middle] + window[self.window_middle + 1:],
