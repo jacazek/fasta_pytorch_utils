@@ -64,31 +64,35 @@ class PreprocessEmbedding(EmbeddingStrategy):
 
     def get_windows(self, sequence):
         items = [self.vocabulary[token] for token in self.tokenizer.tokenize(sequence)]
-        start = 0
-        end = len(items) - 8
-        window_half = self.window_middle
-        window_size = self.window_size
+        # start = 0
+        # end = len(items) - 8
+        # window_half = self.window_middle
+        # window_size = self.window_size
 
-        items = [(torch.tensor(items[i:i + window_half] + items[i + window_half + 1:i + window_size],
-                                  dtype=torch.long), torch.tensor(items[i + window_half], dtype=torch.long)) for i in
-                    range(len(items) - (window_size + 1))]
+        # items = [(torch.tensor(items[i:i + window_half] + items[i + window_half + 1:i + window_size],
+        #                           dtype=torch.long), torch.tensor(items[i + window_half], dtype=torch.long)) for i in
+        #             range(len(items) - (window_size + 1))]
         yield from self.get_context_target(items)
 
-    def get_context_target(self, windowed):
-        # start = 0
-        # end = len(embedded) - 8
-        # window_half = self.window_middle
-        # while start < end:
-        #     sequence_middle = start + window_half
-        #     yield (
-        #         torch.tensor(embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
-        #                      dtype=torch.long),
-        #         torch.tensor(embedded[window_half], dtype=torch.long))
-        #     # yield (embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
-        #     #        embedded[window_half])
-        #     start += 1
-        for sample in windowed:
-            yield sample
+    def get_context_target(self, embedded):
+        start = 0
+        end = len(embedded) - 8
+        window_half = self.window_middle
+        while start < end:
+            left_start = start
+            left_end = left_start+window_half
+            right_start = left_end + 1
+            right_end = right_start+window_half
+
+            yield (
+                torch.tensor(embedded[left_start:left_end] + embedded[right_start:right_end],
+                             dtype=torch.long),
+                torch.tensor(embedded[window_half], dtype=torch.long))
+            # yield (embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
+            #        embedded[window_half])
+            start += 1
+        # for sample in windowed:
+        #     yield sample
 
 
 class StreamingEmbedding(EmbeddingStrategy):
