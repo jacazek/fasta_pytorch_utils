@@ -169,7 +169,7 @@ class StreamingWindows(WindowingStrategy):
                 window.pop(0)
 
 
-def create_window_queue_collator(vocabulary):
+def create_window_queue_collator(device):
     def collate_fn(batch):
         """
         Collect then pad the sequences into a tensor
@@ -180,18 +180,14 @@ def create_window_queue_collator(vocabulary):
 
         # unzip the sequences from the corresponding targets
         [contexts, targets] = zip(*batch)
-        return torch.tensor(contexts, dtype=torch.long), torch.tensor(targets, dtype=torch.long)
-
+        return torch.tensor(contexts, dtype=torch.long, device=device), torch.tensor(targets, dtype=torch.long, device=device)
+    return collate_fn
 
 class FastaWindowQueueDataset(torch.utils.data.IterableDataset):
-    def __init__(self, window_queue, tokenizer, vocabulary, device="cpu", dtype=torch.float32, index_file=None):
+    def __init__(self, window_queue):
         super(FastaWindowQueueDataset).__init__()
-        self.tokenizer = tokenizer
-        self.vocabulary = vocabulary
         self.window_queue = window_queue
-        self.index_file = index_file if index_file is not None else fasta_file + ".fai"
-        self.device = device
-        self.dtype = dtype
+
 
     def __iter__(self):
         yield from QueueConsumer(self.window_queue)
