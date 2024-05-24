@@ -23,6 +23,7 @@ class FastaSequenceQueueConsumer:
             return next
 
 
+
 class FastaFileQueueConsumer:
     def __init__(self, queue: Queue):
         self.queue = queue
@@ -56,11 +57,12 @@ class EmbeddingStrategy(ABC):
 
 
 class PreprocessEmbedding(EmbeddingStrategy):
-    def __init__(self, vocabulary, tokenizer, window_size):
+    def __init__(self, vocabulary, tokenizer, window_size, return_tensors=True):
         self.vocabulary = vocabulary
         self.tokenizer = tokenizer
         self.window_size = window_size
         self.window_middle = math.floor(window_size / 2)
+        self.return_tensors = return_tensors
 
     def get_windows(self, sequence):
         items = [self.vocabulary[token] for token in self.tokenizer.tokenize(sequence)]
@@ -78,11 +80,12 @@ class PreprocessEmbedding(EmbeddingStrategy):
         start = 0
         end = len(embedded) - 8
         window_half = self.window_middle
+        # if self.return_tensors:
         while start < end:
             left_start = start
-            left_end = left_start+window_half
+            left_end = left_start + window_half
             right_start = left_end + 1
-            right_end = right_start+window_half
+            right_end = right_start + window_half
 
             yield (
                 torch.tensor(embedded[left_start:left_end] + embedded[right_start:right_end],
@@ -91,16 +94,30 @@ class PreprocessEmbedding(EmbeddingStrategy):
             # yield (embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
             #        embedded[window_half])
             start += 1
+        # else:
+        #     while start < end:
+        #         left_start = start
+        #         left_end = left_start + window_half
+        #         right_start = left_end + 1
+        #         right_end = right_start + window_half
+        #
+        #         yield (
+        #             embedded[left_start:left_end] + embedded[right_start:right_end],
+        #             embedded[window_half])
+        #         # yield (embedded[start:window_half] + embedded[sequence_middle + 1:sequence_middle + window_half],
+        #         #        embedded[window_half])
+        #         start += 1
         # for sample in windowed:
         #     yield sample
 
 
 class StreamingEmbedding(EmbeddingStrategy):
-    def __init__(self, vocabulary, tokenizer, window_size):
+    def __init__(self, vocabulary, tokenizer, window_size, return_tensors=True):
         self.vocabulary = vocabulary
         self.tokenizer = tokenizer
         self.window_size = window_size
         self.window_middle = math.floor(window_size / 2)
+        self.return_tensors = return_tensors
 
     def get_windows(self, sequence):
         iterator = iter(self.tokenizer.tokenize(sequence))
@@ -108,6 +125,7 @@ class StreamingEmbedding(EmbeddingStrategy):
         yield from self.get_context_target(iterator, window)
 
     def get_context_target(self, iterator, window):
+        # if self.return_tensors:
         try:
             while True:
                 yield (torch.tensor(window[:self.window_middle] + window[self.window_middle + 1:],
@@ -125,6 +143,24 @@ class StreamingEmbedding(EmbeddingStrategy):
                                     dtype=torch.long), torch.tensor(window[self.window_middle],
                                                                     dtype=torch.long))  # Return the remaining window
                 window.pop(0)
+        # else:
+        #     try:
+        #         while True:
+        #             yield (window[:self.window_middle] + window[self.window_middle + 1:],
+        #                    window[self.window_middle])
+        #
+        #             # Slide the window by one element
+        #             window.pop(0)
+        #             window.append(self.vocabulary[next(iterator)])
+        #
+        #     except StopIteration:
+        #         # Handle the end of the streaming data
+        #         while len(window) == self.window_size:
+        #             yield (window[:self.window_middle] + window[self.window_middle + 1:],
+        #                    window[self.window_middle])  # Return the remaining window
+        #             window.pop(0)
+
+
 
 
 class FastaSequenceDataset(torch.utils.data.IterableDataset):
