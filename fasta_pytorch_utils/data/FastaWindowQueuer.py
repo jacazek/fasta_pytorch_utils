@@ -64,8 +64,9 @@ def producer(file_queue: Queue, output_queue: Queue, windowing_strategy: Windowi
                         output_queue.put(window)
 
         print("producer complete")
-    except:
+    except Exception as e:
         print("something went wrong")
+        print(e)
 
 
 class FastaWindowQueuer:
