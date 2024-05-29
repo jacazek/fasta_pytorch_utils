@@ -39,13 +39,13 @@ class FastaFileQueueConsumer:
 
 
 class FastaFileIndexSequenceProvider:
-    def __init__(self, file_indexes: Iterable[tuple[str, int]]):
+    def __init__(self, file_indexes: Iterable[tuple[str, int, bool]]):
         self.file_indexes = file_indexes
 
     def __iter__(self):
-        for file, index in self.file_indexes:
+        for file, index, reverse_compliment in self.file_indexes:
             with FastaFileReader(file) as fasta_file_reader:
-                for item in fasta_file_reader.read_at_index(index):
+                for item in fasta_file_reader.read_at_index(index, reverse_compliment=reverse_compliment):
                     yield item
 
 
