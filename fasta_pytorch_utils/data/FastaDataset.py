@@ -34,14 +34,14 @@ class FastaDataset(torch.utils.data.IterableDataset):
         super(FastaDataset).__init__()
         self.tokenizer = tokenizer
         self.vocabulary = vocabulary
-        self.fasta_files = [(fasta_file, fasta_file+"fai") for fasta_file in fasta_files]
+        self.fasta_files = [(fasta_file, fasta_file+".fai") for fasta_file in fasta_files]
         self.device = device
         self.dtype = dtype
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
         for fasta_file, index_file in self.fasta_files:
-            with FastaFileReader(fasta_file, index_file=self.index_file) as fasta_file_reader:
+            with FastaFileReader(fasta_file, index_file=index_file) as fasta_file_reader:
                 data_reader = None
                 if worker_info is None or worker_info.num_workers <= 1:
                     data_reader = fasta_file_reader.read_all()
