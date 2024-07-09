@@ -1,5 +1,6 @@
 import os
 import torch
+import numpy as np
 from fasta_utils import FastaFileReader
 
 def create_dna_sequence_collate_function(vocabulary):
@@ -46,7 +47,7 @@ class FastaDataset(torch.utils.data.IterableDataset):
                 if worker_info is None or worker_info.num_workers <= 1:
                     data_reader = fasta_file_reader.read_all()
                 else:
-                    if self.index_file is None or not os.path.exists(index_file):
+                    if not os.path.exists(index_file):
                         raise Exception("index file must be specified when using multiple workers")
                     number_of_sequences = fasta_file_reader.get_index_table_length()
                     indices = (np.arange(
